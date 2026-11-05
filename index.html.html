@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전해질 비교 탐구 가상 실험실</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- Header Navigation -->
+    <header class="bg-indigo-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i data-lucide="zap" class="w-6 h-6 text-yellow-400"></i>
+                <h1 class="text-lg md:text-xl font-bold">전해질 탐구 가상 실험실 (물 / 식초 / 오렌지주스 / 소금물)</h1>
+            </div>
+            <nav class="hidden md:flex space-x-1 text-sm font-medium">
+                <button onclick="switchTab('sim')" id="tab-sim" class="px-3 py-1.5 rounded-md bg-indigo-800 text-white transition">가상 실험</button>
+                <button onclick="switchTab('chart')" id="tab-chart" class="px-3 py-1.5 rounded-md text-indigo-200 hover:bg-indigo-800 transition">데이터 비교 Chart</button>
+                <button onclick="switchTab('mol')" id="tab-mol" class="px-3 py-1.5 rounded-md text-indigo-200 hover:bg-indigo-800 transition">분자/이온 구조</button>
+                <button onclick="switchTab('quiz')" id="tab-quiz" class="px-3 py-1.5 rounded-md text-indigo-200 hover:bg-indigo-800 transition">퀴즈 & 카드</button>
+                <button onclick="switchTab('ppt')" id="tab-ppt" class="px-3 py-1.5 rounded-md text-indigo-200 hover:bg-indigo-800 transition">발표(PPT) 요약</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+
+        <!-- Mobile Nav Bar -->
+        <div class="flex md:hidden overflow-x-auto space-x-2 pb-2 text-xs font-semibold">
+            <button onclick="switchTab('sim')" class="px-3 py-2 rounded bg-indigo-900 text-white whitespace-nowrap">가상 실험</button>
+            <button onclick="switchTab('chart')" class="px-3 py-2 rounded bg-white border text-slate-700 whitespace-nowrap">데이터 비교</button>
+            <button onclick="switchTab('mol')" class="px-3 py-2 rounded bg-white border text-slate-700 whitespace-nowrap">분자/이온</button>
+            <button onclick="switchTab('quiz')" class="px-3 py-2 rounded bg-white border text-slate-700 whitespace-nowrap">퀴즈</button>
+            <button onclick="switchTab('ppt')" class="px-3 py-2 rounded bg-white border text-slate-700 whitespace-nowrap">발표 요약</button>
+        </div>
+
+        <!-- SECTION 1: Virtual Lab Simulation -->
+        <section id="sec-sim" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left: Controls & Solution Select -->
+            <div class="glass-panel p-5 rounded-2xl shadow-sm space-y-4">
+                <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="flask-conical" class="text-indigo-600"></i> 용액 선택 및 설정
+                </h2>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="selectLiquid('water')" id="btn-water" class="p-3 rounded-xl border-2 border-indigo-500 bg-indigo-50/50 flex flex-col items-center gap-1 transition">
+                        <span class="font-bold text-sm">증류수/물</span>
+                        <span class="text-[10px] text-slate-500">비전해질/극약전해질</span>
+                    </button>
+                    <button onclick="selectLiquid('vinegar')" id="btn-vinegar" class="p-3 rounded-xl border border-slate-200 bg-white hover:border-amber-400 flex flex-col items-center gap-1 transition">
+                        <span class="font-bold text-sm">식초</span>
+                        <span class="text-[10px] text-slate-500">약전해질 (아세트산)</span>
+                    </button>
+                    <button onclick="selectLiquid('orange')" id="btn-orange" class="p-3 rounded-xl border border-slate-200 bg-white hover:border-orange-400 flex flex-col items-center gap-1 transition">
+                        <span class="font-bold text-sm">오렌지 주스</span>
+                        <span class="text-[10px] text-slate-500">약전해질 (시트르산/구연산)</span>
+                    </button>
+                    <button onclick="selectLiquid('salt')" id="btn-salt" class="p-3 rounded-xl border border-slate-200 bg-white hover:border-blue-400 flex flex-col items-center gap-1 transition">
+                        <span class="font-bold text-sm">소금물</span>
+                        <span class="text-[10px] text-slate-500">강전해질 (NaCl)</span>
+                    </button>
+                </div>
+
+                <div class="pt-3 border-t border-slate-200 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm font-semibold">전원 스위치</label>
+                        <button id="pwr-btn" onclick="togglePower()" class="px-4 py-1.5 rounded-full text-xs font-bold text-white bg-emerald-500 shadow hover:bg-emerald-600 transition">
+                            ON (전원 켜짐)
+                        </button>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-600 mb-1">
+                            <span>인가 전압 (Voltage)</span>
+                            <span id="volt-val" class="font-bold text-indigo-600">6.0 V</span>
+                        </div>
+                        <input type="range" id="volt-slider" min="1" max="12" value="6" step="0.5" oninput="updateVoltage(this.value)" class="w-full accent-indigo-600">
+                    </div>
+                </div>
+
+                <div id="liquid-info-box" class="p-3 bg-slate-100 rounded-xl text-xs space-y-1">
+                    <p class="font-bold text-indigo-900" id="info-title">순수한 물 (H₂O)</p>
+                    <p id="info-desc" class="text-slate-600">이온화량이 거의 없어 전류가 거의 흐르지 않습니다.</p>
+                </div>
+            </div>
+
+            <!-- Middle/Right: Interactive Canvas & Circuit -->
+            <div class="lg:col-span-2 glass-panel p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="cpu" class="text-indigo-600"></i> 회로 및 비커 시뮬레이션
+                    </h2>
+                    <div class="flex items-center gap-4 text-xs font-mono bg-slate-900 text-emerald-400 px-3 py-1.5 rounded-lg">
+                        <span>전류계: <strong id="current-meter" class="text-amber-300 text-sm">0.0 mA</strong></span>
+                        <span>이온화도: <strong id="ion-degree" class="text-amber-300 text-sm">0%</strong></span>
+                    </div>
+                </div>
+
+                <!-- Simulation Canvas Area -->
+                <div class="relative w-full h-80 bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
+                    <canvas id="simCanvas" class="w-full h-full"></canvas>
+                </div>
+
+                <!-- Live Status Footer -->
+                <div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div class="p-2 bg-slate-100 rounded-lg">
+                        <span class="text-slate-500 block">전구 상태</span>
+                        <strong id="bulb-status-text" class="text-slate-800">불꺼짐</strong>
+                    </div>
+                    <div class="p-2 bg-slate-100 rounded-lg">
+                        <span class="text-slate-500 block">주요 입자</span>
+                        <strong id="ion-type-text" class="text-slate-800">H₂O 분자 위주</strong>
+                    </div>
+                    <div class="p-2 bg-slate-100 rounded-lg">
+                        <span class="text-slate-500 block">전해질 구분</span>
+                        <strong id="electrolyte-type-text" class="text-slate-800">비전해질</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Data & Chart Section -->
+        <section id="sec-chart" class="hidden glass-panel p-6 rounded-2xl shadow-sm space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">실험 데이터 분석 & 비교 그래프</h2>
+                    <p class="text-sm text-slate-500">4가지 용액의 전류 세기(mA) 및 이온 농도 비교 데이터</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-700 mb-3 text-center">용액별 전류 세기 비교 (전압 6V 기준)</h3>
+                    <div class="h-64">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <h3 class="text-sm font-bold text-slate-700 mb-3 text-center">전해질 핵심 비교 요약표</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left text-slate-600">
+                            <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                                <tr>
+                                    <th class="py-2 px-3">용액명</th>
+                                    <th class="py-2 px-3">구분</th>
+                                    <th class="py-2 px-3">전류 세기</th>
+                                    <th class="py-2 px-3">전구 밝기</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-2 px-3 font-semibold text-slate-900">물 (증류수)</td>
+                                    <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700">비전해질</span></td>
+                                    <td class="py-2 px-3">0.1 mA 미만</td>
+                                    <td class="py-2 px-3">불꺼짐</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-2 px-3 font-semibold text-amber-700">식초</td>
+                                    <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800">약전해질</span></td>
+                                    <td class="py-2 px-3">약 18 ~ 25 mA</td>
+                                    <td class="py-2 px-3">희미함</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-2 px-3 font-semibold text-orange-700">오렌지 주스</td>
+                                    <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-orange-100 text-orange-800">약전해질</span></td>
+                                    <td class="py-2 px-3">약 35 ~ 48 mA</td>
+                                    <td class="py-2 px-3">밝음</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-2 px-3 font-semibold text-blue-700">소금물</td>
+                                    <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800">강전해질</span></td>
+                                    <td class="py-2 px-3">약 180 ~ 240 mA</td>
+                                    <td class="py-2 px-3">매우밝음</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-2">* 오렌지 주스는 시트르산 외에도 칼륨, 칼슘 등 유기 이온 성분이 포함되어 있어 일반 식초보다 전류가 약간 더 강하게 흐릅니다.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Molecular Structure Section -->
+        <section id="sec-mol" class="hidden glass-panel p-6 rounded-2xl shadow-sm space-y-6">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900">이온화 방정식 & 분자 구조 탐색</h2>
+                <p class="text-sm text-slate-500">수용액 속에서 물질이 이온화되는 과정을 화학식으로 확인하세요.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Water -->
+                <div class="p-4 bg-white rounded-xl border border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-indigo-900">물 (Water)</h3>
+                        <span class="text-xs px-2 py-0.5 bg-slate-100 rounded text-slate-600">H₂O</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 font-mono text-sm rounded text-slate-800">
+                        H₂O ⇌ H⁺ + OH⁻ (극소량 이온화)
+                    </div>
+                    <p class="text-xs text-slate-600">순수한 물은 이온화되는 분자의 비율이 10억 개 중 몇 개 수준으로 매우 적어 전기를 거의 통하지 못합니다.</p>
+                </div>
+
+                <!-- Vinegar -->
+                <div class="p-4 bg-white rounded-xl border border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-amber-800">식초 (Vinegar / 아세트산)</h3>
+                        <span class="text-xs px-2 py-0.5 bg-amber-50 text-amber-800 rounded">CH₃COOH</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 font-mono text-sm rounded text-slate-800">
+                        CH₃COOH ⇌ CH₃COO⁻ + H⁺
+                    </div>
+                    <p class="text-xs text-slate-600">아세트산 분자 중 약 1~2%만 수소 이온(H⁺)과 아세트산 이온(CH₃COO⁻)으로 이온화되는 약전해질입니다.</p>
+                </div>
+
+                <!-- Orange Juice -->
+                <div class="p-4 bg-white rounded-xl border border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-orange-800">오렌지 주스 (Orange Juice)</h3>
+                        <span class="text-xs px-2 py-0.5 bg-orange-50 text-orange-800 rounded">C₆H₈O₇ + K⁺/Ca²⁺</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 font-mono text-sm rounded text-slate-800">
+                        C₆H₈O₇ ⇌ C₆H₇O₇⁻ + H⁺
+                    </div>
+                    <p class="text-xs text-slate-600">주요 산성 유기물인 시트르산(구연산)과 과일 속 무기질 이온(칼륨, 칼슘 등)이 복합 작용하여 약전해질 특성을 띱니다.</p>
+                </div>
+
+                <!-- Salt Water -->
+                <div class="p-4 bg-white rounded-xl border border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-blue-800">소금물 (Salt Water / 염화나트륨)</h3>
+                        <span class="text-xs px-2 py-0.5 bg-blue-50 text-blue-800 rounded">NaCl</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 font-mono text-sm rounded text-slate-800">
+                        NaCl(s) → Na⁺(aq) + Cl⁻(aq) [100% 이온화]
+                    </div>
+                    <p class="text-xs text-slate-600">물에 녹으면 거의 100% 나트륨 이온(Na⁺)과 염화 이온(Cl⁻)으로 완전 분리되어 강전해질이 됩니다.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: Quiz & Flashcards -->
+        <section id="sec-quiz" class="hidden glass-panel p-6 rounded-2xl shadow-sm space-y-6">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900">개념 점검 퀴즈 & 플래시카드</h2>
+                <p class="text-sm text-slate-500">실험을 통해 배운 내용을 복습하고 이해도를 테스트해보세요.</p>
+            </div>
+
+            <!-- Quiz Box -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-indigo-600 uppercase">Quiz Question</span>
+                    <span id="quiz-progress" class="text-xs text-slate-400">1 / 3</span>
+                </div>
+                <h3 id="quiz-question" class="font-bold text-slate-800 text-base">다음 중 수용액 상태에서 전하를 운반하는 주된 입자는 무엇인가요?</h3>
+                <div id="quiz-options" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <!-- Dynamic Options -->
+                </div>
+                <div id="quiz-feedback" class="hidden p-3 rounded-lg text-xs font-semibold"></div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: Presentation Ready (PPT Summary) -->
+        <section id="sec-ppt" class="hidden glass-panel p-6 rounded-2xl shadow-sm space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">발표(PPT) 슬라이드 요약 카드</h2>
+                    <p class="text-sm text-slate-500">학교 탐구 보고서 발표 시 그대로 활용할 수 있는 핵심 요약 카드입니다.</p>
+                </div>
+                <button onclick="copyPPTSummary()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 flex items-center gap-1">
+                    <i data-lucide="copy" class="w-4 h-4"></i> 발표 대본 복사
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 bg-white border border-slate-200 rounded-xl space-y-2">
+                    <span class="text-xs font-bold text-indigo-600">SLIDE 01. 탐구 목적 및 가설</span>
+                    <h3 class="font-bold text-slate-800">용액의 종류에 따른 전류 세기 비교</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        • <strong>가설:</strong> 이온화가 잘 되는 염화나트륨(소금물)이 가장 강한 전류를 흐르게 하고, 순수한 물은 전류가 흐르지 않을 것이다.<br>
+                        • <strong>산성 용액:</strong> 식초와 오렌지 주스는 약산성 유기 이온을 포함하여 약전해질 특성을 보일 것이다.
+                    </p>
+                </div>
+
+                <div class="p-4 bg-white border border-slate-200 rounded-xl space-y-2">
+                    <span class="text-xs font-bold text-indigo-600">SLIDE 02. 실험 결과 요약</span>
+                    <h3 class="font-bold text-slate-800">전기 전도성 측정 결과</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        • <strong>순수한 물:</strong> 전류 0 mA (전구 불꺼짐)<br>
+                        • <strong>식초:</strong> 전류 약 20 mA (전구 희미함)<br>
+                        • <strong>오렌지 주스:</strong> 전류 약 40 mA (전구 밝음)<br>
+                        • <strong>소금물:</strong> 전류 약 200 mA (전구 매우밝음)
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Script Area -->
+    <script>
+        // Data configurations for liquids
+        const LIQUIDS = {
+            water: {
+                name: "순수한 물 (증류수)",
+                type: "비전해질/극약전해질",
+                formula: "H₂O",
+                desc: "이온화되는 분자의 비율이 10억 개 중 몇 개 수준으로 매우 적어 전류가 거의 흐르지 않습니다.",
+                baseCurrent: 0.05,
+                ionDegree: 0.001,
+                ions: ["H₂O 분자 위주"],
+                color: "rgba(186, 230, 253, 0.4)",
+                liquidAlpha: 0.3,
+                particles: { ionPos: 0, ionNeg: 0, mol: 24 }
+            },
+            vinegar: {
+                name: "식초",
+                type: "약전해질",
+                formula: "CH₃COOH",
+                desc: "아세트산 분자 중 약 1~2%만 수소 이온(H⁺)과 아세트산 이온(CH₃COO⁻)으로 이온화됩니다.",
+                baseCurrent: 22,
+                ionDegree: 1.5,
+                ions: ["H⁺", "CH₃COO⁻", "CH₃COOH"],
+                color: "rgba(253, 230, 138, 0.5)",
+                liquidAlpha: 0.5,
+                particles: { ionPos: 4, ionNeg: 4, mol: 16 }
+            },
+            orange: {
+                name: "오렌지 주스",
+                type: "약전해질",
+                formula: "C₆H₈O₇ + K⁺/Ca²⁺",
+                desc: "시트르산(구연산)과 과일 속 무기질 이온(칼륨, 칼슘 등)이 복합 작용하여 전류가 흐릅니다.",
+                baseCurrent: 42,
+                ionDegree: 5.0,
+                ions: ["H⁺", "Citrate⁻", "K⁺", "Ca²⁺"],
+                color: "rgba(253, 186, 116, 0.6)",
+                liquidAlpha: 0.6,
+                particles: { ionPos: 8, ionNeg: 8, mol: 12 }
+            },
+            salt: {
+                name: "소금물",
+                type: "강전해질",
+                formula: "NaCl",
+                desc: "물에 녹으면 거의 100% 나트륨 이온(Na⁺)과 염화 이온(Cl⁻)으로 완전 분리되어 전기가 매우 잘 통합니다.",
+                baseCurrent: 210,
+                ionDegree: 99.9,
+                ions: ["Na⁺", "Cl⁻"],
+                color: "rgba(191, 219, 254, 0.5)",
+                liquidAlpha: 0.4,
+                particles: { ionPos: 18, ionNeg: 18, mol: 2 }
+            }
+        };
+
+        // App States
+        let currentLiquidKey = 'water';
+        let isPowerOn = true;
+        let voltage = 6.0;
+        let particles = [];
+        let canvas, ctx;
+
+        // Quiz State
+        const quizData = [
+            {
+                q: "다음 4가지 용액 중 전류가 가장 잘 통하는 강전해질 수용액은 무엇인가요?",
+                options: ["증류수", "식초", "오렌지 주스", "소금물"],
+                answer: 3,
+                explanation: "소금물(NaCl)은 물속에서 거의 100% 이온화되는 강전해질입니다."
+            },
+            {
+                q: "식초와 오렌지 주스에 전류가 약하게 흐르는 주된 이유는 무엇인가요?",
+                options: [
+                    "분자가 전하를 직접 띠고 있어서",
+                    "일부 분자만 이온화되는 약전해질이기 때문에",
+                    "물이 포함되어 있지 않아서",
+                    "전자가 직접 용액을 헤엄쳐 가기 때문에"
+                ],
+                answer: 1,
+                explanation: "식초(아세트산)와 주스(시트르산)는 일부 분자만 이온화되는 약전해질입니다."
+            },
+            {
+                q: "전해질 수용액에 전원을 연결했을 때 양이온(+)은 어느 극으로 이동하나요?",
+                options: ["(+)극", "(-)극", "이동하지 않음", "랜덤하게 소멸함"],
+                answer: 1,
+                explanation: "서로 다른 전하는 끌어당기므로 양이온(+)은 (-)극으로 이동합니다."
+            }
+        ];
+        let currentQuizIdx = 0;
+
+        // Chart Instance
+        let barChartInstance = null;
+
+        // Init App on Window Load
+        window.onload = function() {
+            lucide.createIcons();
+            initCanvas();
+            initChart();
+            renderQuiz();
+            selectLiquid('water');
+            animate();
+        };
+
+        // Select Liquid Option
+        function selectLiquid(key) {
+            currentLiquidKey = key;
+            const lData = LIQUIDS[key];
+
+            // Update UI buttons
+            ['water', 'vinegar', 'orange', 'salt'].forEach(k => {
+                const btn = document.getElementById(`btn-${k}`);
+                if (btn) {
+                    if (k === key) {
+                        btn.className = "p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50/70 shadow-sm flex flex-col items-center gap-1 transition";
+                    } else {
+                        btn.className = "p-3 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 flex flex-col items-center gap-1 transition";
+                    }
+                }
+            });
+
+            // Update Info Box
+            document.getElementById('info-title').innerText = `${lData.name} (${lData.formula})`;
+            document.getElementById('info-desc').innerText = lData.desc;
+
+            // Re-generate particles
+            initParticles();
+            updateSimulationValues();
+        }
+
+        // Tab Switcher
+        function switchTab(tab) {
+            const tabs = ['sim', 'chart', 'mol', 'quiz', 'ppt'];
+            tabs.forEach(t => {
+                const sec = document.getElementById(`sec-${t}`);
+                if (sec) sec.classList.add('hidden');
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) {
+                    btn.classList.remove('bg-indigo-800', 'text-white');
+                    btn.classList.add('text-indigo-200');
+                }
+            });
+
+            const activeSec = document.getElementById(`sec-${tab}`);
+            if (activeSec) activeSec.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`tab-${tab}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-indigo-800', 'text-white');
+                activeBtn.classList.remove('text-indigo-200');
+            }
+
+            if (tab === 'chart' && barChartInstance) {
+                barChartInstance.update();
+            }
+        }
+
+        // Voltage Slider
+        function updateVoltage(val) {
+            voltage = parseFloat(val);
+            document.getElementById('volt-val').innerText = `${voltage.toFixed(1)} V`;
+            updateSimulationValues();
+        }
+
+        // Power Toggle
+        function togglePower() {
+            isPowerOn = !isPowerOn;
+            const btn = document.getElementById('pwr-btn');
+            if (isPowerOn) {
+                btn.innerText = "ON (전원 켜짐)";
+                btn.className = "px-4 py-1.5 rounded-full text-xs font-bold text-white bg-emerald-500 shadow hover:bg-emerald-600 transition";
+            } else {
+                btn.innerText = "OFF (전원 꺼짐)";
+                btn.className = "px-4 py-1.5 rounded-full text-xs font-bold text-white bg-slate-500 shadow hover:bg-slate-600 transition";
+            }
+            updateSimulationValues();
+        }
+
+        // Update Calculated Simulation Values
+        function updateSimulationValues() {
+            const lData = LIQUIDS[currentLiquidKey];
+            
+            let calculatedCurrent = 0;
+            if (isPowerOn) {
+                calculatedCurrent = lData.baseCurrent * (voltage / 6.0);
+            }
+
+            document.getElementById('current-meter').innerText = `${calculatedCurrent.toFixed(1)} mA`;
+            document.getElementById('ion-degree').innerText = `${lData.ionDegree}%`;
+            document.getElementById('ion-type-text').innerText = lData.ions.join(', ');
+            document.getElementById('electrolyte-type-text').innerText = lData.type;
+
+            // Lightbulb text state (clean text without emojis)
+            const bulbText = document.getElementById('bulb-status-text');
+            if (!isPowerOn || calculatedCurrent < 0.5) {
+                bulbText.innerText = "불꺼짐";
+                bulbText.className = "text-slate-800 font-normal";
+            } else if (calculatedCurrent < 30) {
+                bulbText.innerText = "희미함";
+                bulbText.className = "text-amber-600 font-bold";
+            } else if (calculatedCurrent < 100) {
+                bulbText.innerText = "밝음";
+                bulbText.className = "text-amber-500 font-bold";
+            } else {
+                bulbText.innerText = "매우밝음";
+                bulbText.className = "text-amber-600 font-extrabold";
+            }
+        }
+
+        // Initialize Canvas
+        function initCanvas() {
+            canvas = document.getElementById('simCanvas');
+            if (!canvas) return;
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            initParticles();
+        }
+
+        // Particle System Setup
+        function initParticles() {
+            if (!canvas) return;
+            particles = [];
+            const lData = LIQUIDS[currentLiquidKey];
+            const pConf = lData.particles;
+
+            const beakerLeft = canvas.width * 0.25;
+            const beakerRight = canvas.width * 0.75;
+            const beakerTop = canvas.height * 0.35;
+            const beakerBottom = canvas.height * 0.85;
+
+            // Positive Ions (+)
+            for (let i = 0; i < pConf.ionPos; i++) {
+                particles.push({
+                    x: beakerLeft + Math.random() * (beakerRight - beakerLeft),
+                    y: beakerTop + Math.random() * (beakerBottom - beakerTop),
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: (Math.random() - 0.5) * 1.5,
+                    type: 'pos',
+                    label: '+'
+                });
+            }
+
+            // Negative Ions (-)
+            for (let i = 0; i < pConf.ionNeg; i++) {
+                particles.push({
+                    x: beakerLeft + Math.random() * (beakerRight - beakerLeft),
+                    y: beakerTop + Math.random() * (beakerBottom - beakerTop),
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: (Math.random() - 0.5) * 1.5,
+                    type: 'neg',
+                    label: '-'
+                });
+            }
+
+            // Neutral Molecules
+            for (let i = 0; i < pConf.mol; i++) {
+                particles.push({
+                    x: beakerLeft + Math.random() * (beakerRight - beakerLeft),
+                    y: beakerTop + Math.random() * (beakerBottom - beakerTop),
+                    vx: (Math.random() - 0.5) * 0.8,
+                    vy: (Math.random() - 0.5) * 0.8,
+                    type: 'mol',
+                    label: 'M'
+                });
+            }
+        }
+
+        // Animation Loop
+        function animate() {
+            if (!ctx || !canvas) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const lData = LIQUIDS[currentLiquidKey];
+            const beakerX = canvas.width * 0.22;
+            const beakerWidth = canvas.width * 0.56;
+            const beakerTop = canvas.height * 0.32;
+            const beakerHeight = canvas.height * 0.55;
+
+            // 1. Draw Solution Beaker
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.fillRect(beakerX, beakerTop, beakerWidth, beakerHeight);
+            
+            // Solution Liquid
+            ctx.fillStyle = lData.color;
+            ctx.fillRect(beakerX + 4, beakerTop + 15, beakerWidth - 8, beakerHeight - 19);
+
+            // Beaker Outline
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(beakerX, beakerTop, beakerWidth, beakerHeight);
+
+            // Electrodes (Anode +, Cathode -)
+            const anodeX = beakerX + beakerWidth * 0.3;
+            const cathodeX = beakerX + beakerWidth * 0.7;
+            const electrodeY1 = canvas.height * 0.18;
+            const electrodeY2 = beakerTop + beakerHeight - 15;
+
+            // Anode (+극)
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(anodeX - 6, electrodeY1, 12, electrodeY2 - electrodeY1);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText('(+)', anodeX - 8, electrodeY1 - 8);
+
+            // Cathode (-극)
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillRect(cathodeX - 6, electrodeY1, 12, electrodeY2 - electrodeY1);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('(-)', cathodeX - 7, electrodeY1 - 8);
+
+            // 2. Circuit Wires & Lightbulb
+            const bulbX = canvas.width * 0.5;
+            const bulbY = canvas.height * 0.12;
+
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(anodeX, electrodeY1);
+            ctx.lineTo(anodeX, bulbY);
+            ctx.lineTo(bulbX - 15, bulbY);
+            ctx.moveTo(cathodeX, electrodeY1);
+            ctx.lineTo(cathodeX, bulbY);
+            ctx.lineTo(bulbX + 15, bulbY);
+            ctx.stroke();
+
+            // Light Bulb
+            const currentVal = isPowerOn ? lData.baseCurrent * (voltage / 6.0) : 0;
+            let bulbGlowColor = 'rgba(255, 255, 255, 0.2)';
+            if (currentVal > 150) bulbGlowColor = 'rgba(250, 204, 21, 0.95)';
+            else if (currentVal > 30) bulbGlowColor = 'rgba(251, 191, 36, 0.7)';
+            else if (currentVal > 0.5) bulbGlowColor = 'rgba(253, 230, 138, 0.4)';
+
+            ctx.beginPath();
+            ctx.arc(bulbX, bulbY, 14, 0, Math.PI * 2);
+            ctx.fillStyle = bulbGlowColor;
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.stroke();
+
+            // 3. Update & Draw Particles (Ions / Molecules)
+            particles.forEach(p => {
+                if (isPowerOn && currentVal > 0.1) {
+                    // Electric field force
+                    if (p.type === 'pos') {
+                        p.vx += (cathodeX - p.x) * 0.0008 * (voltage / 6);
+                    } else if (p.type === 'neg') {
+                        p.vx += (anodeX - p.x) * 0.0008 * (voltage / 6);
+                    }
+                }
+
+                // Move & Bounce Bounds
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vx *= 0.98;
+                p.vy *= 0.98;
+
+                if (p.x < beakerX + 12 || p.x > beakerX + beakerWidth - 12) p.vx *= -1;
+                if (p.y < beakerTop + 20 || p.y > beakerTop + beakerHeight - 12) p.vy *= -1;
+
+                // Draw Particle
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.type === 'mol' ? 6 : 7, 0, Math.PI * 2);
+
+                if (p.type === 'pos') {
+                    ctx.fillStyle = '#f87171'; // Red for Positive Ion
+                } else if (p.type === 'neg') {
+                    ctx.fillStyle = '#60a5fa'; // Blue for Negative Ion
+                } else {
+                    ctx.fillStyle = '#94a3b8'; // Gray Neutral Molecule
+                }
+                ctx.fill();
+
+                // Particle Sign Label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(p.label, p.x, p.y);
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize Comparison Chart
+        function initChart() {
+            const chartElem = document.getElementById('barChart');
+            if (!chartElem) return;
+            const ctxChart = chartElem.getContext('2d');
+            barChartInstance = new Chart(ctxChart, {
+                type: 'bar',
+                data: {
+                    labels: ['물 (증류수)', '식초', '오렌지 주스', '소금물'],
+                    datasets: [{
+                        label: '전류 세기 (mA)',
+                        data: [0.05, 22, 42, 210],
+                        backgroundColor: [
+                            'rgba(56, 189, 248, 0.7)',
+                            'rgba(251, 191, 36, 0.7)',
+                            'rgba(251, 146, 60, 0.7)',
+                            'rgba(59, 130, 246, 0.7)'
+                        ],
+                        borderColor: [
+                            '#0284c7',
+                            '#d97706',
+                            '#ea580c',
+                            '#2563eb'
+                        ],
+                        borderWidth: 1.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: '전류 (mA)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Quiz Module
+        function renderQuiz() {
+            const quiz = quizData[currentQuizIdx];
+            document.getElementById('quiz-question').innerText = quiz.q;
+            document.getElementById('quiz-progress').innerText = `${currentQuizIdx + 1} / ${quizData.length}`;
+            
+            const optionsBox = document.getElementById('quiz-options');
+            optionsBox.innerHTML = '';
+
+            quiz.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "p-3 rounded-lg border border-slate-200 text-left text-xs font-medium hover:bg-indigo-50 hover:border-indigo-300 transition flex items-center justify-between";
+                btn.innerHTML = `<span>${idx + 1}. ${opt}</span>`;
+                btn.onclick = () => checkQuiz(idx);
+                optionsBox.appendChild(btn);
+            });
+
+            document.getElementById('quiz-feedback').className = 'hidden';
+        }
+
+        function checkQuiz(selectedIdx) {
+            const quiz = quizData[currentQuizIdx];
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.classList.remove('hidden');
+
+            if (selectedIdx === quiz.answer) {
+                feedback.className = "p-3 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200";
+                feedback.innerText = `정답입니다! ${quiz.explanation}`;
+            } else {
+                feedback.className = "p-3 rounded-lg text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200";
+                feedback.innerText = `아쉽네요. 다시 해보세요! 힌트: ${quiz.explanation}`;
+            }
+
+            setTimeout(() => {
+                if (selectedIdx === quiz.answer) {
+                    currentQuizIdx = (currentQuizIdx + 1) % quizData.length;
+                    renderQuiz();
+                }
+            }, 2500);
+        }
+
+        // PPT Script Copy Helper
+        function copyPPTSummary() {
+            const text = `[전해질 탐구 발표 요약 - 물, 식초, 오렌지주스, 소금물]
+1. 물 (증류수): 비전해질 / 전류 0mA / 전구 불꺼짐
+2. 식초: 약전해질 (아세트산 일부 이온화) / 전류 약 20mA / 희미함
+3. 오렌지 주스: 약전해질 (시트르산 + 과일 이온) / 전류 약 40mA / 밝음
+4. 소금물: 강전해질 (염화나트륨 100% 완전 이온화) / 전류 약 200mA / 매우밝음
+
+결론: 수용액 속 이온화 정도와 자유 이온의 수에 따라 전기 전도성이 결정됨.`;
+
+            const dummy = document.createElement('textarea');
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+
+            alert('발표 대본 요약이 클립보드에 복사되었습니다!');
+        }
+    </script>
+</body>
+</html>
